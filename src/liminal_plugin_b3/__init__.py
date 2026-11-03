@@ -76,7 +76,7 @@ PLUGIN = Provider(
     kind="exchange", archival=False, tier=TIER, per_run=PER_RUN, per_day=PER_DAY,
     limits="none published (a public file server: a session's file about 600 KB, a year's 60 to 90 MB)",
     exchanges=frozenset({"BVMF"}),  # B3's listings, stored as PETR4.SA (the library's notation), and no other
-    options=(YEARS_VAR,),
+    options=(YEARS_VAR,), plan_choices={YEARS_VAR: ("2", "1", "3", "5", "10")},  # its choices: the Plugins view offers it
     provides={"stock": ("day",)}, per_request={"day": None},  # a file serves every listing: a year of days, or one day
     bulk_resolution="day", view=view, rate=lambda settings: RATE,
     markets=lambda settings: {"stock": NAME},

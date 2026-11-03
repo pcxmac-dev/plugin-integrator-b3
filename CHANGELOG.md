@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 (2026-11-03)
+
+`B3_HISTORY_YEARS` has its choices (2, 1, 3, 5, 10 years) in the record, so the app's Plugins view offers it.
+
 ## 1.0.0 (2026-11-02)
 
 The first release (the user: "update existing plugins, add exchanges where applicable and symbols, and if new

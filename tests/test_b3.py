@@ -378,6 +378,7 @@ def test_it_keeps_its_facts(monkeypatch):
     assert composite.feed_kind("b3", "stock") == "exchange"
     p = provider("b3")
     assert p.exchanges == {"BVMF"} and p.options == ("B3_HISTORY_YEARS",) and p.keys == () and p.keys_set(s) is None
+    assert p.plan_choices["B3_HISTORY_YEARS"][0] == "2"  # the default first: the Plugins view offers them
     assert p.provides == {"stock": ("day",)} and p.request_bars("day") is None and p.bulk_resolution == "day"
     assert history_floor(view.tier, date(2026, 11, 3)) == date(today.year - 1, 1, 1)
     assert freshness.plan_delay(view.tier, "stock").kind == "eod"
