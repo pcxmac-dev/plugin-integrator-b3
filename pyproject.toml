@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "liminal-plugin-b3"
+version = "1.0.0"  # the plugin's own release (CHANGELOG.md); the app shows it on the Plugins view
+description = "B3 for Liminal: the daily bars of B3's listings (Sao Paulo) from the exchange's public COTAHIST files, no key."
+readme = "README.md"
+requires-python = ">=3.10"
+# the library it plugs into; which of its releases can load it is the plugin API the plugin declares
+# (PLUGIN.api, checked when the app loads it), not this line
+dependencies = ["liminal-lib>=1.2.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.entry-points."liminal.providers"]
+b3 = "liminal_plugin_b3"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
