@@ -42,7 +42,7 @@ as `package: liminal-plugin-b3`, with this package's version.
 Into the app's environment, from the app's folder:
 
 ```powershell
-.venv\Scripts\python.exe -m pip install "liminal-plugin-b3 @ git+https://github.com/pcxmac-dev/liminal-plugin-b3@v1.0.0"
+.venv\Scripts\python.exe -m pip install "liminal-plugin-b3 @ git+https://github.com/pcxmac-dev/liminal-plugin-b3@v0.2.0"
 ```
 
 or with the app's plugins (`pip install -e ".[plugins]"` in liminal-app). The app loads it on its next
@@ -50,10 +50,10 @@ start. No key; `B3_HISTORY_YEARS` is its one setting.
 
 ## Compatibility
 
-It is written for plugin API 1.12 (`PLUGIN.api`: the exchanges a feed carries, `Provider.exchanges`,
-and the databases its own code writes, `Provider.databases`; liminal-lib 1.2.0 or later). An app
-offering 1.12 or a later 1.x loads it; an app of another major, or one older than 1.12, leaves it
-out and says why on the Plugins view.
+It is written for plugin API 2.0, the class contract (`PLUGIN`, an instance of `B3Plugin`, a `FeedPlugin`:
+the exchanges a feed carries, `exchanges`, the databases its own code writes, `databases`, and its
+publication delay, `delays`; liminal-lib 1.3.0 or later). An app offering 2.0 or a later 2.x loads it; an
+app of another major leaves it out and says why on the Plugins view.
 
 ## Develop
 

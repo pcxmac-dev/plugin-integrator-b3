@@ -18,9 +18,11 @@ from liminal_lib import composite, freshness
 from liminal_lib.collector import history_floor
 from liminal_lib.config import load_settings
 from liminal_lib.errors import NotEntitled, RateLimited, SourceError
+from liminal_lib.freshness import Delay
 from liminal_lib.sources import feed_profiles, is_archive, markets, provider, rate_window, registry, supports
 from liminal_lib.sources.archive import ET, ms
 from liminal_lib.sources.http import PublicClient, SameHostSession
+from liminal_lib.sources.registry import FeedPlugin
 from liminal_lib.symbols import resolve
 
 import liminal_plugin_b3
@@ -355,11 +357,11 @@ def test_the_app_loads_it_from_this_package_with_its_own_version():
     p = provider("b3")
     assert p is not None, dict(registry.errors())
     assert p.origin in {"package: liminal-plugin-b3 (liminal_plugin_b3)", "plugins/liminal-plugin-b3 (liminal_plugin_b3)"}  # its package, or its checkout in the workspace's plugin directory
-    assert p.version == version("liminal-plugin-b3") and p.api == "1.12"
+    assert p.version == version("liminal-plugin-b3") and p.api == "2.0"
     assert registry.api_refusal(p.api) is None and liminal_plugin_b3.PLUGIN.version == ""
     assert not [why for where, why in registry.errors() if "b3" in where or "b3" in why]
     row = {r["name"]: r for r in registry.menu()}["b3"]
-    assert (row["version"], row["api"], row["keys"], row["archive"]) == (version("liminal-plugin-b3"), "1.12", [], False)
+    assert (row["version"], row["api"], row["keys"], row["archive"]) == (version("liminal-plugin-b3"), "2.0", [], False)
     assert registry.plugin_feeds("b3") == ["b3"] and registry.plugin_of("b3") == "b3"
     assert [(d["where"], d["engine"]) for d in row["databases"] if d["where"].startswith("sources/")] == [("sources/b3/", "files")]
     assert any(d["where"] == "feeds/b3.db" for d in row["databases"])
@@ -395,8 +397,22 @@ def test_it_keeps_its_facts(monkeypatch):
     held = []
     monkeypatch.setattr(liminal_plugin_b3, "limiter", lambda name, st: held.append(("window", name)))
     monkeypatch.setattr(liminal_plugin_b3, "machine_caps", lambda client, name, st: held.append(("day", name)) or client)
-    src = liminal_plugin_b3.build(load_settings(env={"B3_HISTORY_YEARS": "3"}, env_file=None), 5)
+    src = liminal_plugin_b3.PLUGIN.build(load_settings(env={"B3_HISTORY_YEARS": "3"}, env_file=None), 5)
     assert held == [("window", "b3"), ("day", "b3")] and src.name == "b3" and src.years == 3
     assert src.client.base_url == BASE_URL and isinstance(src.client._session, B3Session) and src.client.request_budget == 5
     assert src.folder == s.db_path.parent / "sources" / "b3"
-    assert liminal_plugin_b3.build(replace(s, db_path=Path(":memory:")), None).folder is None
+    assert liminal_plugin_b3.PLUGIN.build(replace(s, db_path=Path(":memory:")), None).folder is None
+
+
+def test_it_is_a_class_on_plugin_api_2_0():
+    """The plugin is an instance of its class (plugin API 2.0, liminal-lib 1.3.0): what it declares its class
+    attributes, what it does its methods; the registry loads it as that class."""
+    assert isinstance(liminal_plugin_b3.PLUGIN, liminal_plugin_b3.B3Plugin) and isinstance(liminal_plugin_b3.PLUGIN, FeedPlugin)
+    assert liminal_plugin_b3.PLUGIN.api == "2.0" and not liminal_plugin_b3.PLUGIN.is_record
+    p = registry.reload()["b3"]
+    assert type(p) is liminal_plugin_b3.B3Plugin and p.api == "2.0" and p.name == "b3"
+    # the hooks it gives, the rest the contract's defaults
+    assert p.gives("build") and p.gives("view") and p.gives("rate") and p.gives("markets")
+    assert not p.gives("scan") and not p.gives("has_keys") and not p.gives("carries") and not p.has_settings
+    # it declares its publication delay itself, the library's row for it still in place
+    assert p.delays == {"b3": {"stock": Delay("eod")}} and p.delays["b3"] == freshness.PLAN_DELAYS["b3"]

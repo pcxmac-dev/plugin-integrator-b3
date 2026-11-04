@@ -4,11 +4,13 @@ the recent days, and a yearly file for each of the last B3_HISTORY_YEARS years (
 current one counted; 60 to 90 MB each, kept under the plugin's folder in the data folder,
 sources/b3/, with an index beside each).
 
-A Liminal plugin released on its own (liminal_lib.sources.registry: Provider), registered under the
-entry point group `liminal.providers` as `b3`: one feed. It relies on plugin API 1.12 (the exchanges
-a feed carries, Provider.exchanges, so a listing PETR4.SA comes to it and to no US feed; the
-databases a plugin's own code writes, Provider.databases) and nothing of the app outside it; its
-version is this distribution's (pyproject.toml), so the record's is left empty.
+A Liminal plugin released on its own, registered under the entry point group `liminal.providers`
+as `b3`: one feed, `PLUGIN`, an instance of `B3Plugin` on the class contract (plugin API 2.0,
+liminal-lib 1.3.0: liminal_lib.sources.plugin.FeedPlugin; what it declares its class attributes,
+what it does its methods). It relies on the contract (the exchanges a feed carries, `exchanges`, so
+a listing PETR4.SA comes to it and to no US feed; the databases a plugin's own code writes,
+`databases`; its publication delay, `delays`) and nothing of the app outside it; its version is
+this distribution's (pyproject.toml), so the instance's is left empty.
 """
 from __future__ import annotations
 
@@ -16,9 +18,10 @@ from dataclasses import replace
 from datetime import date
 
 from liminal_lib.config import Tier
+from liminal_lib.freshness import Delay
 from liminal_lib.layout import locate
 from liminal_lib.sources.http import PublicClient
-from liminal_lib.sources.registry import Database, Provider, limiter, machine_caps
+from liminal_lib.sources.registry import Database, FeedPlugin, limiter, machine_caps
 
 from .client import START, B3Session, B3Source, first_day
 
@@ -49,36 +52,56 @@ def history_years(settings) -> int:
     return max(1, years)
 
 
-def view(base):
-    """The feed's plan: its fixed tier with the history reaching back to January 1 of the earliest
-    year kept (B3_HISTORY_YEARS: a floor the collector never asks below, and that moves back when
-    the user raises the years), never before B3's first session served (1995-01-02); its caps."""
-    tier = replace(TIER, history_start=first_day(history_years(base), date.today()))
-    return replace(base, tier=tier, max_requests_per_run=PER_RUN, max_requests_per_day=PER_DAY, origin=base)
+class B3Plugin(FeedPlugin):
+    """The feed as a class (plugin API 2.0): what it declares its class attributes, what it does its
+    methods (`view`: its plan with the floor the years kept set; `build`: its source on B3's file host;
+    `rate` and `markets`), the rest the contract's defaults."""
+
+    api = "2.0"  # the contract it needs (the class contract: exchanges, databases, delays); its version: the distribution's
+    name = NAME
+    title = "B3"
+    assets = frozenset({"stock"})
+    order = 110
+    about = ("daily bars of every B3 listing (Brazil) from the exchange's public COTAHIST files, the last "
+             "B3_HISTORY_YEARS years (no key)")
+    kind = "exchange"
+    archival = False
+    tier = TIER
+    per_run, per_day = PER_RUN, PER_DAY
+    limits = "none published (a public file server: a session's file about 600 KB, a year's 60 to 90 MB)"
+    exchanges = frozenset({"BVMF"})  # B3's listings, stored as PETR4.SA (the library's notation), and no other
+    options = (YEARS_VAR,)
+    plan_choices = {YEARS_VAR: ("2", "1", "3", "5", "10")}  # its choices: the Plugins view offers it
+    provides = {"stock": ("day",)}
+    per_request = {"day": None}  # a file serves every listing: a year of days, or one day
+    bulk_resolution = "day"
+    databases = (FILES,)
+    # when its data is published (the library's freshness.PLAN_DELAYS row for b3, declared here too): a
+    # session's file is out the evening of the session, end of day
+    delays = {NAME: {"stock": Delay("eod")}}
+
+    def view(self, base):
+        """The feed's plan: its fixed tier with the history reaching back to January 1 of the earliest
+        year kept (B3_HISTORY_YEARS: a floor the collector never asks below, and that moves back when
+        the user raises the years), never before B3's first session served (1995-01-02); its caps."""
+        tier = replace(self.tier, history_start=first_day(history_years(base), date.today()))
+        return replace(base, tier=tier, max_requests_per_run=self.per_run, max_requests_per_day=self.per_day, origin=base)
+
+    def rate(self, settings):
+        return RATE
+
+    def markets(self, settings):
+        return {"stock": self.name}
+
+    def build(self, settings, request_budget):
+        """The feed's source: the public client on B3's file host (its window and day cap held for the
+        machine: the server's limits are per address; a certificate chain that fails is an error at
+        once, B3Session), the plugin's folder in the data folder for the yearly files (none for a
+        database in memory: the daily files alone then), and the years kept."""
+        client = PublicClient(BASE_URL, rate_limiter=limiter(self.name, settings), request_budget=request_budget,
+                              session=B3Session())
+        folder = locate(FILES.where, settings.db_path)
+        return B3Source(machine_caps(client, self.name, settings), folder=folder, years=history_years(settings))
 
 
-def build(settings, request_budget):
-    """The feed's source: the public client on B3's file host (its window and day cap held for the
-    machine: the server's limits are per address; a certificate chain that fails is an error at
-    once, B3Session), the plugin's folder in the data folder for the yearly files (none for a
-    database in memory: the daily files alone then), and the years kept."""
-    client = PublicClient(BASE_URL, rate_limiter=limiter(NAME, settings), request_budget=request_budget,
-                          session=B3Session())
-    folder = locate(FILES.where, settings.db_path)
-    return B3Source(machine_caps(client, NAME, settings), folder=folder, years=history_years(settings))
-
-
-PLUGIN = Provider(
-    api="1.12",  # the contract it needs (Provider.exchanges, Provider.databases); its version: the distribution's
-    name=NAME, title="B3", build=build, assets=frozenset({"stock"}), order=110,
-    about="daily bars of every B3 listing (Brazil) from the exchange's public COTAHIST files, the last "
-          "B3_HISTORY_YEARS years (no key)",
-    kind="exchange", archival=False, tier=TIER, per_run=PER_RUN, per_day=PER_DAY,
-    limits="none published (a public file server: a session's file about 600 KB, a year's 60 to 90 MB)",
-    exchanges=frozenset({"BVMF"}),  # B3's listings, stored as PETR4.SA (the library's notation), and no other
-    options=(YEARS_VAR,), plan_choices={YEARS_VAR: ("2", "1", "3", "5", "10")},  # its choices: the Plugins view offers it
-    provides={"stock": ("day",)}, per_request={"day": None},  # a file serves every listing: a year of days, or one day
-    bulk_resolution="day", view=view, rate=lambda settings: RATE,
-    markets=lambda settings: {"stock": NAME},
-    databases=(FILES,),
-)
+PLUGIN = B3Plugin()
