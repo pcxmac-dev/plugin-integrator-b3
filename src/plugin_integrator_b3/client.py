@@ -42,10 +42,10 @@ from typing import Callable, Iterator
 
 import requests
 
-from liminal_lib.errors import NotEntitled, SourceError
-from liminal_lib.models import Exchange, Instrument, country, instrument_class, listing_ticker, suffix_mic
-from liminal_lib.sources.archive import ET, Archive, bounds, ms
-from liminal_lib.sources.http import PublicClient, SameHostSession
+from liminal_libs.errors import NotEntitled, SourceError
+from liminal_libs.models import Exchange, Instrument, country, instrument_class, listing_ticker, suffix_mic
+from liminal_libs.sources.archive import ET, Archive, bounds, ms
+from liminal_libs.sources.http import PublicClient, SameHostSession
 
 MIC = "BVMF"
 B3 = Exchange("b3", 1, "B3", country("BR"), mic=MIC, acronym="B3", type="exchange")
@@ -108,7 +108,7 @@ def b3_session(d: date) -> bool | None:
     exchange_calendars' BVMF, which knows its holidays from a month back to a year on); None when it
     cannot say (a day outside that span, or no calendar here)."""
     try:
-        from liminal_lib.sessions import world_calendar
+        from liminal_libs.sessions import world_calendar
 
         cal = world_calendar(MIC)
         if not cal.first_session.date() <= d <= cal.last_session.date():

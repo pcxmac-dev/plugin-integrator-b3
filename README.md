@@ -1,6 +1,6 @@
-# liminal-plugin-b3
+# plugin-integrator-b3
 
-B3 for [Liminal](https://github.com/pcxmac-dev/liminal-app): the daily bars of every listing on B3,
+B3 for [Liminal](https://github.com/pcxmac-dev/liminal-charts): the daily bars of every listing on B3,
 Brazil's exchange (São Paulo, MIC BVMF), read from the exchange's own public COTAHIST files. No key.
 
 The feed `b3` serves the cash market's standard lot (ON, PN and units, a company's standing aside),
@@ -34,32 +34,32 @@ it, `PETROBRAS PN N2`, its ISIN, no listing date) come from the last five sessio
 from the yearly files kept here. Its plan: 10 requests a minute, 100 a run, 400 a day (`b3`).
 
 A Liminal provider plugin released on its own. The app finds it through the entry point group
-`liminal.providers` and lists it on the Plugins view and in `liminal plugins`
-as `package: liminal-plugin-b3`, with this package's version.
+`liminal.providers` and lists it on the Plugins view and in `liminal-charts plugins`
+as `package: plugin-integrator-b3`, with this package's version.
 
 ## Install
 
 Into the app's environment, from the app's folder:
 
 ```powershell
-.venv\Scripts\python.exe -m pip install "liminal-plugin-b3 @ git+https://github.com/pcxmac-dev/liminal-plugin-b3@v0.2.0"
+.venv\Scripts\python.exe -m pip install "plugin-integrator-b3 @ git+https://github.com/pcxmac-dev/plugin-integrator-b3@v0.2.0"
 ```
 
-or with the app's plugins (`pip install -e ".[plugins]"` in liminal-app). The app loads it on its next
+or with the app's plugins (`pip install -e ".[plugins]"` in liminal-charts). The app loads it on its next
 start. No key; `B3_HISTORY_YEARS` is its one setting.
 
 ## Compatibility
 
 It is written for plugin API 2.0, the class contract (`PLUGIN`, an instance of `B3Plugin`, a `FeedPlugin`:
 the exchanges a feed carries, `exchanges`, the databases its own code writes, `databases`, and its
-publication delay, `delays`; liminal-lib 1.3.0 or later). An app offering 2.0 or a later 2.x loads it; an
+publication delay, `delays`; liminal-libs 1.3.0 or later). An app offering 2.0 or a later 2.x loads it; an
 app of another major leaves it out and says why on the Plugins view.
 
 ## Develop
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\python.exe -m pip install "liminal-lib @ git+https://github.com/pcxmac-dev/liminal-lib@main"
+.venv\Scripts\python.exe -m pip install "liminal-libs @ git+https://github.com/pcxmac-dev/liminal-libs@main"
 .venv\Scripts\python.exe -m pip install -e ".[dev]"
 .venv\Scripts\python.exe -m pytest -q
 ```

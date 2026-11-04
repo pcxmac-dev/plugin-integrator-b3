@@ -6,7 +6,7 @@ sources/b3/, with an index beside each).
 
 A Liminal plugin released on its own, registered under the entry point group `liminal.providers`
 as `b3`: one feed, `PLUGIN`, an instance of `B3Plugin` on the class contract (plugin API 2.0,
-liminal-lib 1.3.0: liminal_lib.sources.plugin.FeedPlugin; what it declares its class attributes,
+liminal-libs 1.3.0: liminal_libs.sources.plugin.FeedPlugin; what it declares its class attributes,
 what it does its methods). It relies on the contract (the exchanges a feed carries, `exchanges`, so
 a listing PETR4.SA comes to it and to no US feed; the databases a plugin's own code writes,
 `databases`; its publication delay, `delays`) and nothing of the app outside it; its version is
@@ -17,11 +17,11 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import date
 
-from liminal_lib.config import Tier
-from liminal_lib.freshness import Delay
-from liminal_lib.layout import locate
-from liminal_lib.sources.http import PublicClient
-from liminal_lib.sources.registry import Database, FeedPlugin, limiter, machine_caps
+from liminal_libs.config import Tier
+from liminal_libs.freshness import Delay
+from liminal_libs.layout import locate
+from liminal_libs.sources.http import PublicClient
+from liminal_libs.sources.registry import Database, FeedPlugin, limiter, machine_caps
 
 from .client import START, B3Session, B3Source, first_day
 

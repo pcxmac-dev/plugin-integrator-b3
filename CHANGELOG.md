@@ -2,12 +2,14 @@
 
 ## 0.2.0 (2026-11-03)
 
-The plugin is a class on plugin API 2.0 (the class contract, liminal-lib 1.3.0; the user: "all the plugins under
+Renamed `plugin-integrator-b3` (the package `plugin_integrator_b3`; it was `liminal-plugin-b3`) on 2026-11-03: the naming by system (plugins are `plugin-<app>-<name>`), on liminal-libs 1.4.0 (`liminal_libs`, the library renamed with it).
+
+The plugin is a class on plugin API 2.0 (the class contract, liminal-libs 1.3.0; the user: "all the plugins under
 liminal should basically follow inheritance/oop paradigm"): `PLUGIN` is an instance of `B3Plugin`, a `FeedPlugin`,
 what it declares its class attributes (its exchange, its database, `B3_HISTORY_YEARS` and its choices ...) and what
 it does its methods (`view`, `build`, `rate`, `markets`). It declares its publication delay itself (`delays`: `b3`,
 end of day; the library's row stays). Every fact, limit and string is as in 1.0.1. Its version is the release's,
-0.2.0, as every Liminal plugin's on `release/0.2.0`; requires liminal-lib 1.3.0.
+0.2.0, as every Liminal plugin's on `release/0.2.0`; requires liminal-libs 1.3.0.
 
 ## 1.0.1 (2026-11-03)
 
