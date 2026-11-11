@@ -5,7 +5,7 @@ on:
   pull_request:
 
 env:
-  # the library release it is tested against (its plugin API 2.0): the library's release/0.2.0 branch; back to
+  # the library release it is tested against (its plugin API 2.2, liminal-libs 1.49.0): the library's release/0.2.0 branch; back to
   # main at the release
   LIMINAL_LIB_REF: release/0.2.0
 

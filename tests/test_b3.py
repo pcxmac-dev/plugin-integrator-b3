@@ -357,11 +357,11 @@ def test_the_app_loads_it_from_this_package_with_its_own_version():
     p = provider("b3")
     assert p is not None, dict(registry.errors())
     assert p.origin in {"package: plugin-integrator-b3 (plugin_integrator_b3)", "plugins/plugin-integrator-b3 (plugin_integrator_b3)"}  # its package, or its checkout in the workspace's plugin directory
-    assert p.version == version("plugin-integrator-b3") and p.api == "2.0"
+    assert p.version == version("plugin-integrator-b3") and p.api == "2.2"
     assert registry.api_refusal(p.api) is None and plugin_integrator_b3.PLUGIN.version == ""
     assert not [why for where, why in registry.errors() if "b3" in where or "b3" in why]
     row = {r["name"]: r for r in registry.menu()}["b3"]
-    assert (row["version"], row["api"], row["keys"], row["archive"]) == (version("plugin-integrator-b3"), "2.0", [], False)
+    assert (row["version"], row["api"], row["keys"], row["archive"]) == (version("plugin-integrator-b3"), "2.2", [], False)
     assert registry.plugin_feeds("b3") == ["b3"] and registry.plugin_of("b3") == "b3"
     assert [(d["where"], d["engine"]) for d in row["databases"] if d["where"].startswith("sources/")] == [("sources/b3/", "files")]
     assert any(d["where"] == "feeds/b3.db" for d in row["databases"])
@@ -404,13 +404,13 @@ def test_it_keeps_its_facts(monkeypatch):
     assert plugin_integrator_b3.PLUGIN.build(replace(s, db_path=Path(":memory:")), None).folder is None
 
 
-def test_it_is_a_class_on_plugin_api_2_0():
-    """The plugin is an instance of its class (plugin API 2.0, liminal-libs 1.3.0): what it declares its class
+def test_it_is_a_class_on_plugin_api_2_2():
+    """The plugin is an instance of its class (plugin API 2.2, liminal-libs 1.49.0): what it declares its class
     attributes, what it does its methods; the registry loads it as that class."""
     assert isinstance(plugin_integrator_b3.PLUGIN, plugin_integrator_b3.B3Plugin) and isinstance(plugin_integrator_b3.PLUGIN, FeedPlugin)
-    assert plugin_integrator_b3.PLUGIN.api == "2.0" and not plugin_integrator_b3.PLUGIN.is_record
+    assert plugin_integrator_b3.PLUGIN.api == "2.2" and not plugin_integrator_b3.PLUGIN.is_record
     p = registry.reload()["b3"]
-    assert type(p) is plugin_integrator_b3.B3Plugin and p.api == "2.0" and p.name == "b3"
+    assert type(p) is plugin_integrator_b3.B3Plugin and p.api == "2.2" and p.name == "b3"
     # the hooks it gives, the rest the contract's defaults
     assert p.gives("build") and p.gives("view") and p.gives("rate") and p.gives("markets")
     assert not p.gives("scan") and not p.gives("has_keys") and not p.gives("carries") and not p.has_settings

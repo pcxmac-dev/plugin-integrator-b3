@@ -47,6 +47,9 @@ from liminal_libs.models import Exchange, Instrument, country, instrument_class,
 from liminal_libs.sources.archive import ET, Archive, bounds, ms
 from liminal_libs.sources.http import PublicClient, SameHostSession
 
+from .apis import NAME as API_NAME
+from .facts import NOTES
+
 MIC = "BVMF"
 B3 = Exchange("b3", 1, "B3", country("BR"), mic=MIC, acronym="B3", type="exchange")
 START = date(1995, 1, 2)  # the first session served: B3's files reach further back, in older currencies
@@ -388,14 +391,17 @@ class B3Source(Archive):
         None when B3 has no file for the day (a 404), remembered too."""
         if d in self._days:
             return self._days[d]
+        name = f"COTAHIST_D{d:%d%m%Y}.ZIP"
         try:
-            data, _ = self.client.get_bytes(f"/COTAHIST_D{d:%d%m%Y}.ZIP")
+            data, _ = self.client.get_bytes(f"/{name}")
         except SourceError as e:
             if e.status != 404:
                 raise
             quotes = None
+            NOTES.keep(API_NAME, {"Last daily file asked": f"{name}: none (404)"})
         else:
             quotes = {q.code: q for q in read_file(data)}
+            NOTES.keep(API_NAME, {"Last daily file asked": f"{name}: {len(quotes):,} listings kept"})
         while len(self._days) >= DAY_CACHE:
             del self._days[next(iter(self._days))]
         self._days[d] = quotes
@@ -469,11 +475,15 @@ class B3Source(Archive):
         path = self._zip(year)
         part = path.with_name(path.name + ".part")
         part.write_bytes(data)
+        size = len(data)
         del data
         index = YearIndex(path)
         index.path.unlink(missing_ok=True)
         os.replace(part, path)
         self._build(index)
+        last = index.last()
+        NOTES.keep(API_NAME, {"Last yearly file downloaded": f"{path.name}: {size / 1e6:,.1f} MB, to "
+                                                             f"{last.isoformat() if last else 'no session'}"})
         return index
 
     def _year(self, year: int, upto: date) -> YearIndex | None:

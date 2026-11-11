@@ -11,6 +11,11 @@ what it does its methods). It relies on the contract (the exchanges a feed carri
 a listing PETR4.SA comes to it and to no US feed; the databases a plugin's own code writes,
 `databases`; its publication delay, `delays`) and nothing of the app outside it; its version is
 this distribution's (pyproject.toml), so the instance's is left empty.
+
+Plugin API 2.2 (liminal-libs 1.49.0; the user, 2026-11-11: "each plugin should reflect the the API its attached to, and
+present links that provide documentation"): `apis`, what it talks to (apis.py: the COTAHIST files with B3's pages that
+publish and describe them, their layout, every part of the series and the files it downloads among the rest), and
+`api_facts()`, what its client learned while it ran (facts.py), asking nothing.
 """
 from __future__ import annotations
 
@@ -23,7 +28,10 @@ from liminal_libs.layout import locate
 from liminal_libs.sources.http import PublicClient
 from liminal_libs.sources.registry import Database, FeedPlugin, limiter, machine_caps
 
+from .apis import APIS
+from .apis import NAME as API_NAME
 from .client import START, B3Session, B3Source, first_day
+from .facts import NOTES
 
 NAME = "b3"
 BASE_URL = "https://bvmf.bmfbovespa.com.br/InstDados/SerHist"  # the files' folder (checked 2026-11-02; client.py)
@@ -53,11 +61,11 @@ def history_years(settings) -> int:
 
 
 class B3Plugin(FeedPlugin):
-    """The feed as a class (plugin API 2.0): what it declares its class attributes, what it does its
+    """The feed as a class (plugin API 2.2): what it declares its class attributes, what it does its
     methods (`view`: its plan with the floor the years kept set; `build`: its source on B3's file host;
-    `rate` and `markets`), the rest the contract's defaults."""
+    `rate` and `markets`; `api_facts`), the rest the contract's defaults."""
 
-    api = "2.0"  # the contract it needs (the class contract: exchanges, databases, delays); its version: the distribution's
+    api = "2.2"  # the contract it needs (the class contract: exchanges, databases, delays; 2.2: apis); its version: the distribution's
     name = NAME
     title = "B3"
     assets = frozenset({"stock"})
@@ -79,6 +87,8 @@ class B3Plugin(FeedPlugin):
     # when its data is published (the library's freshness.PLAN_DELAYS row for b3, declared here too): a
     # session's file is out the evening of the session, end of day
     delays = {NAME: {"stock": Delay("eod")}}
+    # what it attaches to (plugin API 2.2): the COTAHIST files, with B3's pages and their layout (apis.py)
+    apis = APIS
 
     def view(self, base):
         """The feed's plan: its fixed tier with the history reaching back to January 1 of the earliest
@@ -101,7 +111,13 @@ class B3Plugin(FeedPlugin):
         client = PublicClient(BASE_URL, rate_limiter=limiter(self.name, settings), request_budget=request_budget,
                               session=B3Session())
         folder = locate(FILES.where, settings.db_path)
+        NOTES.note(API_NAME, client)  # held weakly: api_facts reads what it learned
         return B3Source(machine_caps(client, self.name, settings), folder=folder, years=history_years(settings))
+
+    def api_facts(self):
+        """What its client learned of B3's files while it ran (the requests made, the last answer's clock, the last
+        file's change, the last files read), from what this process already holds: nothing is asked (facts.py)."""
+        return NOTES.facts(a.name for a in self.apis)
 
 
 PLUGIN = B3Plugin()

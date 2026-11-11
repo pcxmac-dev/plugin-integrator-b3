@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.0 (2026-11-11)
+
+Its API on its page (plugin API 2.2, liminal-libs 1.49.0; the user: "each plugin should reflect the the API its attached
+to, and present links that provide documentation, the plugin interface should more or less contain what it already has,
+BUT, it should also expose more of what the API is about"). `B3Plugin.apis` declares what it talks to, read from B3's
+own pages on 2026-11-11 (`apis.py`): **B3's COTAHIST historical quotes**, with the pages that publish and describe the
+files (English and Portuguese), the page of the files to download, their layout (revision 02, 2020-10-05, and the
+English revision 01), the series' prices on CD-ROM and B3's terms of use; the series in ten parts (the yearly, monthly
+and daily files, the header and trailer, the markets of the records, the code tables), each said used or not; the two
+downloads it makes (`COTAHIST_D`, `COTAHIST_A`) beside the monthly files it does not. The card says what B3 says of use:
+the Portuguese page forbids automated collection ("vedada a coleta automatizada") and the terms allow personal use only
+(said on the card; the plugin downloads as before).
+
+`api_facts()` says what its client learned while it ran, asking nothing: the requests made, the last answer's clock and
+the last file's change, the last daily file asked and the last yearly file downloaded (`facts.py`: the client held
+weakly, its last words kept when it goes). Tests: the contract at 2.2, the card's downloads the ones its source asks
+for, the facts, and every page it names answering (only with `LIMINAL_VENDOR_PAGES=1`). On liminal-libs 1.49.0 or
+later; every behaviour, limit and string as in 0.2.0.
+
 ## 0.2.0 (2026-11-03)
 
 Renamed `plugin-integrator-b3` (the package `plugin_integrator_b3`; it was `liminal-plugin-b3`) on 2026-11-03: the naming by system (plugins are `plugin-<app>-<name>`), on liminal-libs 1.4.0 (`liminal_libs`, the library renamed with it).

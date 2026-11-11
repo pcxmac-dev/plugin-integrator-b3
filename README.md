@@ -37,12 +37,27 @@ A Liminal provider plugin released on its own. The app finds it through the entr
 `liminal.providers` and lists it on the Plugins view and in `liminal-charts plugins`
 as `package: plugin-integrator-b3`, with this package's version.
 
+## Its API
+
+It attaches to B3's historical quotation series, the COTAHIST files at `https://bvmf.bmfbovespa.com.br/InstDados/SerHist`
+(public, no key); its page in every app shows them (`PLUGIN.apis`), with every part of the series, the files it
+downloads among the rest, and what its client learned (`PLUGIN.api_facts()`):
+
+- [Historical quote data](https://www.b3.com.br/en_us/market-data-and-indices/data-services/market-data/historical-data/equities/historical-quote-data/)
+  ([Cotações históricas](https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/historico/mercado-a-vista/cotacoes-historicas/)),
+  and the [files to download](https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/historico/mercado-a-vista/series-historicas/):
+  yearly from 1986, monthly for the last twelve months, daily for the current year;
+- the [layout of the quotes file](https://www.b3.com.br/data/files/33/67/B9/50/D84057102C784E47AC094EA8/SeriesHistoricas_Layout.pdf)
+  (revision 02, 2020-10-05): the 245-character records, the markets (TPMERC) and the code tables (BDI, ESPECI);
+- B3's [terms of use](https://www.b3.com.br/pt_br/termos-de-uso-e-protecao-de-dados/termos-de-uso/): the site's data for
+  personal use; the Portuguese page forbids automated collection of what it offers.
+
 ## Install
 
 Into the app's environment, from the app's folder:
 
 ```powershell
-.venv\Scripts\python.exe -m pip install "plugin-integrator-b3 @ git+https://github.com/pcxmac-dev/plugin-integrator-b3@v0.2.0"
+.venv\Scripts\python.exe -m pip install "plugin-integrator-b3 @ git+https://github.com/pcxmac-dev/plugin-integrator-b3@v0.3.0"
 ```
 
 or with the app's plugins (`pip install -e ".[plugins]"` in liminal-charts). The app loads it on its next
@@ -50,10 +65,10 @@ start. No key; `B3_HISTORY_YEARS` is its one setting.
 
 ## Compatibility
 
-It is written for plugin API 2.0, the class contract (`PLUGIN`, an instance of `B3Plugin`, a `FeedPlugin`:
-the exchanges a feed carries, `exchanges`, the databases its own code writes, `databases`, and its
-publication delay, `delays`; liminal-libs 1.3.0 or later). An app offering 2.0 or a later 2.x loads it; an
-app of another major leaves it out and says why on the Plugins view.
+It is written for plugin API 2.2, the class contract (`PLUGIN`, an instance of `B3Plugin`, a `FeedPlugin`:
+the exchanges a feed carries, `exchanges`, the databases its own code writes, `databases`, its
+publication delay, `delays`, and what it attaches to, `apis`; liminal-libs 1.49.0 or later). An app offering 2.2 or a
+later 2.x loads it; an app of another major, or one older than 2.2, leaves it out and says why on the Plugins view.
 
 ## Develop
 
