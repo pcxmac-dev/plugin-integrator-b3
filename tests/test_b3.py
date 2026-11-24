@@ -257,6 +257,33 @@ def test_a_yearly_file_that_is_not_a_zip_is_an_error_and_not_kept(tmp_path):
     assert not list(folder.iterdir())
 
 
+def test_a_failed_yearly_refresh_keeps_the_good_year_and_the_run_goes_on(tmp_path):
+    """The review of 2026-11-21, item 26: the refresh deleted the year's index and replaced its zip before building,
+    a bad download then deleted the zip too, and the year's index (no file now) stopped the run with sqlite's "no
+    such table: meta"."""
+    folder = tmp_path / "b3"
+    y2026 = cotahist([record("PETR4", day="20260102", c=3900, avg=3890)], "20260102", "COTAHIST_A2026.TXT")
+    first, _ = _source(FakeResponse(200, y2026), folder=folder, today=date(2026, 1, 5), sessions=lambda d: True)
+    assert [b["c"] for b in next(first.bar_pages("PETR4.SA", date(2026, 1, 2), date(2026, 1, 2), "day"))] == [39.0]
+    kept = sorted(p.name for p in folder.iterdir())
+    # weeks later the refresh answers with a page that is not a zip, then one of another year: neither is kept
+    for bad in (b"<html>Attention Required! | Cloudflare</html>",
+                cotahist([record("PETR4", day="20251230")], "20251230", "COTAHIST_A2025.TXT")):
+        later, session = _source(FakeResponse(200, bad), *[FakeResponse(404, b"") for _ in range(40)], folder=folder,
+                                 today=date(2026, 2, 16), sessions=lambda d: False)
+        with pytest.raises(SourceError, match="not a zip|not in 2026"):
+            next(later.bar_pages("PETR4.SA", date(2026, 1, 2), date(2026, 2, 13), "day"))
+        assert sorted(p.name for p in folder.iterdir()) == kept and (folder / "COTAHIST_A2026.ZIP").read_bytes() == y2026
+        assert YearIndex(folder / "COTAHIST_A2026.ZIP").fresh()
+        # the run goes on with the year kept (asked for once a run)
+        assert [b["c"] for b in next(later.bar_pages("PETR4.SA", date(2026, 1, 2), date(2026, 2, 13), "day"))] == [39.0]
+        assert _files(session)[0] == "COTAHIST_A2026.ZIP" and _files(session).count("COTAHIST_A2026.ZIP") == 1
+    # an index that cannot be read is the source's error, never sqlite's
+    with pytest.raises(SourceError, match="COTAHIST_A2024.db cannot be read"):
+        YearIndex(folder / "COTAHIST_A2024.ZIP").bars("PETR4", date(2024, 1, 1), date(2024, 12, 31))
+    assert not (folder / "COTAHIST_A2024.db").exists()  # (nor made by asking)
+
+
 def test_listings_and_records_come_from_the_latest_sessions_files():
     # Tuesday the 3rd: Monday's file is missing (Finados), Friday's and Thursday's are there, then nothing for a while
     src, session = _source(FakeResponse(404, b""), FakeResponse(200, cotahist(DAY)),

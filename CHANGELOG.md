@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1 (2026-11-24)
+
+A failed yearly refresh keeps the good year (the review of 2026-11-21, item 26). `_fetch` deleted the year's index
+and put the download in place of its zip before building it, and a build that failed then deleted that zip too: a
+bad download (a Cloudflare page, a cut file) lost the year, and the year's index, still held by the run, stopped it
+with sqlite's "no such table: meta". The new year is now built beside the old (`COTAHIST_A2026.part.ZIP` and its
+`.part.db`), checked (its last session in that year), and replaces the old only then; on any failure the part files
+go and the old year stays and serves the run. An index is opened read-only for each read (never made by asking),
+and one that cannot be read is a `SourceError` saying so. Test: a refresh answered with a page that is not a zip,
+then with another year's file: neither kept, the year's files unchanged, the run's next read served from them.
+
 ## 0.3.0 (2026-11-11)
 
 Its API on its page (plugin API 2.2, liminal-libs 1.49.0; the user: "each plugin should reflect the the API its attached

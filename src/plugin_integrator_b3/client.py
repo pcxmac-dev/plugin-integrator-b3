@@ -265,10 +265,20 @@ class YearIndex:
         st = self.zip.stat()
         return f"{st.st_size}:{int(st.st_mtime)}"
 
+    def _query(self, sql: str, args: tuple) -> list[tuple]:
+        """Rows of the index, opened for the read alone (never made: sqlite would make an empty file). A year
+        that cannot be read is a SourceError, the run's to say, not sqlite's OperationalError (the review of
+        2026-11-21, item 26: a refresh that failed left an index with no file, and "no such table: meta"
+        stopped the run)."""
+        try:
+            with closing(sqlite3.connect(f"{self.path.as_uri()}?mode=ro", uri=True)) as con:
+                return con.execute(sql, args).fetchall()
+        except sqlite3.Error as e:
+            raise SourceError(0, f"{self.path.name} cannot be read ({e}): it is built again next run") from e
+
     def meta(self, key: str) -> str | None:
-        with closing(sqlite3.connect(self.path)) as con:
-            row = con.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
-        return row[0] if row else None
+        rows = self._query("SELECT value FROM meta WHERE key = ?", (key,))
+        return rows[0][0] if rows else None
 
     def fresh(self) -> bool:
         """Whether the index is here and of the zip as it is now."""
@@ -276,7 +286,7 @@ class YearIndex:
             return False
         try:
             return self.meta("stamp") == self._stamp()
-        except sqlite3.Error:
+        except (sqlite3.Error, SourceError):
             return False
 
     def last(self) -> date | None:
@@ -328,20 +338,17 @@ class YearIndex:
 
     def bars(self, code: str, lo: date, hi: date) -> list[dict]:
         """A listing's day bars from lo to hi (both included), oldest first."""
-        with closing(sqlite3.connect(self.path)) as con:
-            rows = con.execute("SELECT day, o, h, l, c, vw, v, n FROM bars WHERE code = ? AND day BETWEEN ? AND ? "
-                               "ORDER BY day", (code, _num(lo), _num(hi))).fetchall()
+        rows = self._query("SELECT day, o, h, l, c, vw, v, n FROM bars WHERE code = ? AND day BETWEEN ? AND ? "
+                           "ORDER BY day", (code, _num(lo), _num(hi)))
         return [{"t": day_ms(_date(day)), "o": o, "h": h, "l": l, "c": c, "v": v, "vw": vw, "n": n}
                 for day, o, h, l, c, vw, v, n in rows]
 
     def listing(self, code: str) -> Quote | None:
         """A listing as its latest record in the file names it (no bar)."""
-        with closing(sqlite3.connect(self.path)) as con:
-            row = con.execute("SELECT day, bdi, name, especi, isin, currency, factor FROM listings WHERE code = ?",
-                              (code,)).fetchone()
-        if row is None:
+        rows = self._query("SELECT day, bdi, name, especi, isin, currency, factor FROM listings WHERE code = ?", (code,))
+        if not rows:
             return None
-        day, bdi, name, especi, isin, currency, factor = row
+        day, bdi, name, especi, isin, currency, factor = rows[0]
         return Quote(_date(day), code, bdi, name, especi, isin, currency, factor)
 
 
@@ -473,15 +480,25 @@ class B3Source(Archive):
             raise
         self.folder.mkdir(parents=True, exist_ok=True)
         path = self._zip(year)
-        part = path.with_name(path.name + ".part")
-        part.write_bytes(data)
-        size = len(data)
-        del data
+        # The new year is built beside the old (COTAHIST_A2026.part.ZIP and its .part.db) and replaces it only once
+        # built and checked: a refresh that fails keeps the good year here (the review of 2026-11-21, item 26: the
+        # old index was deleted and the zip replaced first, so a bad download lost the year and broke the run).
+        new = YearIndex(path.with_name(f"{path.stem}.part{path.suffix}"))
         index = YearIndex(path)
-        index.path.unlink(missing_ok=True)
-        os.replace(part, path)
-        self._build(index)
-        last = index.last()
+        try:
+            new.zip.write_bytes(data)
+            size = len(data)
+            del data
+            self._build(new)
+            last = new.last()
+            if last is None or last.year != year:
+                raise SourceError(200, f"{path.name}'s last session is {last or 'none'}, not in {year}: not kept")
+            os.replace(new.zip, path)
+            os.replace(new.path, index.path)  # (between the two, the old index no longer fresh: built again)
+        except BaseException:
+            new.zip.unlink(missing_ok=True)
+            new.path.unlink(missing_ok=True)
+            raise
         NOTES.keep(API_NAME, {"Last yearly file downloaded": f"{path.name}: {size / 1e6:,.1f} MB, to "
                                                              f"{last.isoformat() if last else 'no session'}"})
         return index
