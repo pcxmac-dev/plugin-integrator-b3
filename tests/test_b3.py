@@ -284,6 +284,20 @@ def test_a_failed_yearly_refresh_keeps_the_good_year_and_the_run_goes_on(tmp_pat
     assert not (folder / "COTAHIST_A2024.db").exists()  # (nor made by asking)
 
 
+def test_the_years_index_is_read_from_a_folder_named_relative(tmp_path, monkeypatch):
+    """Item 14's review (A5): a data folder named relative to where the app runs (LIMINAL_DB=data\\liminal.db) gives a
+    relative folder, and the index's read-only URI was made of the path as it was: Path.as_uri() refuses a relative
+    path (ValueError), which fresh() does not catch, so every B3 read stopped the run. The path is made absolute first."""
+    monkeypatch.chdir(tmp_path)
+    folder = Path("data") / "sources" / "b3"
+    y2026 = cotahist([record("PETR4", day="20260102", c=3900, avg=3890)], "20260102", "COTAHIST_A2026.TXT")
+    src, _ = _source(FakeResponse(200, y2026), folder=folder, today=date(2026, 1, 5), sessions=lambda d: True)
+    assert [b["c"] for b in next(src.bar_pages("PETR4.SA", date(2026, 1, 2), date(2026, 1, 2), "day"))] == [39.0]
+    index = YearIndex(folder / "COTAHIST_A2026.ZIP")
+    assert not index.path.is_absolute() and (tmp_path / index.path).is_file()
+    assert index.fresh() and index.meta("quotes") == "1" and index.last() == date(2026, 1, 2)
+
+
 def test_listings_and_records_come_from_the_latest_sessions_files():
     # Tuesday the 3rd: Monday's file is missing (Finados), Friday's and Thursday's are there, then nothing for a while
     src, session = _source(FakeResponse(404, b""), FakeResponse(200, cotahist(DAY)),

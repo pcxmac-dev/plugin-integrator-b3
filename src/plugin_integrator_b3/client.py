@@ -269,9 +269,10 @@ class YearIndex:
         """Rows of the index, opened for the read alone (never made: sqlite would make an empty file). A year
         that cannot be read is a SourceError, the run's to say, not sqlite's OperationalError (the review of
         2026-11-21, item 26: a refresh that failed left an index with no file, and "no such table: meta"
-        stopped the run)."""
+        stopped the run). Its URI is made of the path made absolute: a data folder named relative to where the app
+        runs (LIMINAL_DB=data\\liminal.db) gives a relative one, which Path.as_uri() refuses (item 14's review, A5)."""
         try:
-            with closing(sqlite3.connect(f"{self.path.as_uri()}?mode=ro", uri=True)) as con:
+            with closing(sqlite3.connect(f"{self.path.resolve().as_uri()}?mode=ro", uri=True)) as con:
                 return con.execute(sql, args).fetchall()
         except sqlite3.Error as e:
             raise SourceError(0, f"{self.path.name} cannot be read ({e}): it is built again next run") from e
