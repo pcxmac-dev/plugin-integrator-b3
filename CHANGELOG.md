@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2 (2026-11-27)
+
+A year's index is read from a data folder named relative to where the app runs (item 14's review, A5). 0.3.1 opened
+the index read-only by its URI, made of the path as it was: with `LIMINAL_DB=data\liminal.db` the folder is relative,
+`Path.as_uri()` refused it (`ValueError`), and `fresh()`, which catches sqlite's errors and the source's, let it stop
+every B3 read. The URI is made of the path made absolute. Test: the year fetched, indexed and read back under a
+relative folder.
+
 ## 0.3.1 (2026-11-24)
 
 A failed yearly refresh keeps the good year (the review of 2026-11-21, item 26). `_fetch` deleted the year's index
